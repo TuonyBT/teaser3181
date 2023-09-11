@@ -1,12 +1,15 @@
 use std::{collections::{BTreeSet, BTreeMap}, f32::consts::PI};
+use itertools::Itertools;
+
 
 fn main() {
 
 //  Set up a dictionary of Pythagorean triplets indexed according to perimeter length p < 100
+//  Limits set by hypotenuse h < a + b => h < p/2
     let mut pss = BTreeMap::<u32, Vec<[u32; 3]>>::new();
 
-    for n in 1..100 {
-        let ps = pythag_triplets(n).into_iter().filter(|[x, y, z]| x + y + z < 100).collect::<BTreeSet<[u32; 3]>>();
+    for h in 1..50 {
+        let ps = pythag_triplets(h).into_iter().filter(|[x, y, z]| x + y + z < 100).collect::<BTreeSet<[u32; 3]>>();
         if !ps.is_empty() {
             for [x, y, z] in ps.to_owned() {
                 let p = x + y + z;
@@ -41,13 +44,27 @@ fn main() {
 //  p must be capable of expression as b.(a + b) where b > a and a, b are odd and coprime
 //  so let's factorise p first, and then look for factor pairs that meet these criteria
                     let facs = prime_factor(*p as usize);
-                    let b = match facs.last() {
-                        Some(f) => f[0] as u32,
-                        None => 1_u32,
-                    };
-                    let a = p / b - b;
-                    println!("prime factors of p: {:?}", facs);
-                    println!("p: {}, b: {}, a: {}", p, b, a);
+                    let pfs =facs.iter()
+                    .filter(|[f, _p]| f != &2)
+                    .map(|[f, _p]| f).collect::<Vec<&usize>>();
+
+
+                    for pwrs in facs.iter()
+                    .filter(|[f, _p]| f != &2)
+                    .map(|[_f, p]| 0..*p + 1).multi_cartesian_product() {  
+
+                        let b = pwrs.into_iter().zip(&pfs).map(|(p, f)| f.pow(p as u32) as u32)
+                        .product::<u32>();
+
+                        if b.pow(2) < *p && b.pow(2) * 2 > *p {
+                            let a = p / b - b;
+                            println!("p: {}, b: {}, a: {}", p, b, a);    
+                        }
+
+                        
+
+                        println!(); 
+                    }
 
                 }
                 r += 1;
