@@ -43,27 +43,14 @@ fn main() {
 
 //  p must be capable of expression as b.(a + b) where b > a and a, b are odd and coprime
 //  so let's factorise p first, and then look for factor pairs that meet these criteria
-                    let facs = prime_factor(*p as usize);
-                    let pfs =facs.iter()
-                    .filter(|[f, _p]| f != &2)
-                    .map(|[f, _p]| f).collect::<Vec<&usize>>();
 
-
-                    for pwrs in facs.iter()
-                    .filter(|[f, _p]| f != &2)
-                    .map(|[_f, p]| 0..*p + 1).multi_cartesian_product() {  
-
-                        let b = pwrs.into_iter().zip(&pfs).map(|(p, f)| f.pow(p as u32) as u32)
-                        .product::<u32>();
-
+                    for b in all_factors(*p as usize) {
                         if b.pow(2) < *p && b.pow(2) * 2 > *p {
                             let a = p / b - b;
-                            println!("p: {}, b: {}, a: {}", p, b, a);    
+                            println!("New p: {}, b: {}, a: {}", p, b, a);    
                         }
+                    
 
-                        
-
-                        println!(); 
                     }
 
                 }
@@ -127,4 +114,24 @@ pub fn prime_factor(m: usize) -> Vec<[usize; 2]> {
         }
     }
     factors
+}
+
+
+fn all_factors(m: usize) -> Vec<u32> {
+
+    let mut all_factors = Vec::<u32>::new();
+
+    let facs = prime_factor(m);
+    let pfs =facs.iter()
+    .map(|[f, _p]| f).collect::<Vec<&usize>>();
+
+    for pwrs in facs.iter()
+    .map(|[_f, p]| 0..*p + 1).multi_cartesian_product() {  
+
+        all_factors.push(pwrs.into_iter().zip(&pfs).map(|(p, f)| f.pow(p as u32) as u32)
+        .product::<u32>());
+
+    }
+    all_factors.sort();
+    all_factors
 }
