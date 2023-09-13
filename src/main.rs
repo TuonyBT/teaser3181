@@ -21,9 +21,15 @@ fn main() {
 //  We are looking for values of p for which more than one triplet exists
     pss = pss.into_iter().filter(|(_k, v)| v.len() > 1).collect::<BTreeMap<u32, Vec<[u32; 3]>>>();
 
+//  Search each perimeter for valid values of [a, b] and [r, theta] as per the puzzle requirements
+//  Just using unwrap because we have already checked both tests are returning legitimate values
+
     for p in pss.keys() {
-        if p_expression(*p) && globe_check(*p) {
-            println!("Solution p: {}", p);    
+        let ab = p_expression(*p);
+        let r_theta = globe_check(*p);
+        
+        if ab.is_some() && r_theta.is_some() {
+            println!("Solution p: {}; [a, b]: {:?}; [r, theta]: {:?}", p, ab.unwrap(), r_theta.unwrap());    
         }
     }
 
@@ -31,31 +37,29 @@ fn main() {
 
 //  Check that perimeter can be expressed in terms of a and b meeting puzzle criteria
 
-fn p_expression(p: u32) -> bool {
+fn p_expression(p: u32) -> Option<[u32; 2]> {
 
 //  p must be capable of expression as b.(a + b) where b > a and a, b are odd and share no prime factors
 //  so let's factorise p first, and then look for factor pairs that meet these criteria
-    let mut pass = false;
 
     for b in all_factors(p as usize) {
         if b % 2 == 0 {continue}
         if b.pow(2) < p && b.pow(2) * 2 > p {
             let a = p / b - b;
             if a % 2 != 0 && hcf(a, b) == 1 {
-                pass = true;    
+                return Some([a, b]);    
             }
         }
     }
-    pass
+    None
 }
 
 //  Check that the perimeter can be stretched over the globe as described
 //  We need to find r, theta pairs such that r and theta each have alternative permutations of the same two digits
 //  p = pi * r * (1 + theta_/180) where theta is theta_ to the nearest degree
 
-fn globe_check(p: u32) -> bool {
+fn globe_check(p: u32) -> Option<[u32; 2]> {
 
-    let mut pass = false;
     //  Initialise r and theta such that they have two digits; r will increase and theta decrease in our loop
     let mut r = 10_u32;
     let mut theta_ = 99.0;
@@ -65,13 +69,12 @@ fn globe_check(p: u32) -> bool {
 
         let theta = theta_.round() as u32;
         if r / 10 == theta % 10 && r % 10 == theta / 10 {
-            pass = true;
-            break
+            return Some([r, theta]);
         }
         r += 1;
 
     }
-    pass
+    None
 }
 
 //  Return all Pythagorean triplets with hypotenuse n
