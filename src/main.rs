@@ -21,47 +21,58 @@ fn main() {
 //  We are looking for values of p for which more than one triplet exists
     pss = pss.into_iter().filter(|(_k, v)| v.len() > 1).collect::<BTreeMap<u32, Vec<[u32; 3]>>>();
 
-    pss.iter().for_each(|p| println!("{:?}", p));
-
     for p in pss.keys() {
-        if true {
-//  in fact the only pair that works happen to be odd and coprime so we'll be lazy and omit these tests
-//            println!("p: {}, b: {}, a: {}", p, b, a);
-
-//  Next we need to find r, theta pairs such that r and theta each have alternative permutations of the same two digits
-//  p = pi * r * (1 + theta_/180) where theta is theta_ to the nearest degree
-
-            let mut r = 10_u32;
-            let mut theta_ = 180.0;
-
-            while r < 100 && theta_ > 0.0 {
-                theta_ = (*p as f32 / r as f32 - PI) * 180.0 / PI;
-
-                let theta = theta_.round() as u32;
-                if r / 10 == theta % 10 && r % 10 == theta / 10 {
-                    println!("r: {}, theta_: {}", r, theta);
-
-//  p must be capable of expression as b.(a + b) where b > a and a, b are odd and coprime
-//  so let's factorise p first, and then look for factor pairs that meet these criteria
-
-                    for b in all_factors(*p as usize) {
-                        if b.pow(2) < *p && b.pow(2) * 2 > *p {
-                            let a = p / b - b;
-                            println!("New p: {}, b: {}, a: {}", p, b, a);    
-                        }
-                    
-
-                    }
-
-                }
-                r += 1;
-            }
-
+        if p_expression(*p) && globe_check(*p) {
+            println!("Solution p: {}", p);    
         }
     }
 
 }
 
+//  Check that perimeter can be expressed in terms of a and b meeting puzzle criteria
+
+fn p_expression(p: u32) -> bool {
+
+//  p must be capable of expression as b.(a + b) where b > a and a, b are odd and share no prime factors
+//  so let's factorise p first, and then look for factor pairs that meet these criteria
+    let mut pass = false;
+
+    for b in all_factors(p as usize) {
+        if b % 2 == 0 {continue}
+        if b.pow(2) < p && b.pow(2) * 2 > p {
+            let a = p / b - b;
+            if a % 2 != 0 && hcf(a, b) == 1 {
+                pass = true;    
+            }
+        }
+    }
+    pass
+}
+
+//  Check that the perimeter can be stretched over the globe as described
+//  We need to find r, theta pairs such that r and theta each have alternative permutations of the same two digits
+//  p = pi * r * (1 + theta_/180) where theta is theta_ to the nearest degree
+
+fn globe_check(p: u32) -> bool {
+
+    let mut pass = false;
+    //  Initialise r and theta such that they have two digits; r will increase and theta decrease in our loop
+    let mut r = 10_u32;
+    let mut theta_ = 99.0;
+
+    while r < 100 && theta_ >= 10.0 {
+        theta_ = (p as f32 / r as f32  / PI - 1.0) * 180.0;
+
+        let theta = theta_.round() as u32;
+        if r / 10 == theta % 10 && r % 10 == theta / 10 {
+            pass = true;
+            break
+        }
+        r += 1;
+
+    }
+    pass
+}
 
 //  Return all Pythagorean triplets with hypotenuse n
 pub fn pythag_triplets(c: u32) -> BTreeSet<[u32; 3]> {
@@ -134,4 +145,23 @@ fn all_factors(m: usize) -> Vec<u32> {
     }
     all_factors.sort();
     all_factors
+}
+
+//  Highest common factor of two numbers
+
+fn hcf(x: u32, y: u32) -> u32 {
+
+    // Prime factors of the two subject numbers
+    let x_facs = prime_factor(x as usize);
+    let y_facs = prime_factor(y as usize);
+
+    // Common prime factors
+    let cfs = x_facs.iter().cartesian_product(&y_facs)
+                                                    .filter(|(x, y)| x[0] == y[0])
+                                                    .map(|(x, y)|[x[0], x[1].min(y[1])])
+                                                    .collect::<Vec<[usize; 2]>>();
+
+    //  Product of all common factors raised to respective smaller power
+    cfs.iter().map(|z| (z[0] as u32).pow(z[1] as u32)).product::<u32>()
+
 }
